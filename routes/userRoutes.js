@@ -2,7 +2,7 @@ const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const emailValidator = require("email-validator");
-const User = require('../models/User')
+const User = require("../models/User");
 
 //register
 router.post("/register", async (req, res) => {
@@ -12,12 +12,16 @@ router.post("/register", async (req, res) => {
     //validation
     //todo: add other required fields
     if (!body.email || !body.password) {
-      return res
-        .json({ status: 400, message: "Lütfen zorunlu alanları doldurun" });
+      return res.json({
+        status: 400,
+        message: "Lütfen zorunlu alanları doldurun",
+      });
     }
     if (body.password.length < 6) {
-      return res
-        .json({ status: 400, message: "Şifre en az 6 haneli olmalıdır" });
+      return res.json({
+        status: 400,
+        message: "Şifre en az 6 haneli olmalıdır",
+      });
     }
     if (!emailValidator.validate(body.email)) {
       return res.json({
@@ -42,7 +46,11 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
     });
     const savedUser = await user.save();
-    return res.json({status:200,message: 'Kayıt işlemi başarılı',savedUser})
+    return res.json({
+      status: 200,
+      message: "Kayıt işlemi başarılı",
+      savedUser,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ status: 500, error });
@@ -50,56 +58,88 @@ router.post("/register", async (req, res) => {
 });
 
 //login
-router.post("/login",async (req,res)=>{
+router.post("/login", async (req, res) => {
   try {
-    const {body}=req
+    const { body } = req;
     //validation
-    if(!body.email || !body.password){
-      return res.json({status:400,message:"Email ve Şifre alanları boş bırakılamaz"})
+    if (!body.email || !body.password) {
+      return res.json({
+        status: 400,
+        message: "Email ve Şifre alanları boş bırakılamaz",
+      });
     }
-    if(body.password.length < 6) return res.json({status:400,message:"Şifre 6 karakterden kısa olamaz"})
-    if(!emailValidator.validate(body.email)) return res.json({status:400,message:"Geçerli bir email formatı girin"})
+    if (body.password.length < 6)
+      return res.json({
+        status: 400,
+        message: "Şifre 6 karakterden kısa olamaz",
+      });
+    if (!emailValidator.validate(body.email))
+      return res.json({
+        status: 400,
+        message: "Geçerli bir email formatı girin",
+      });
     //check user exist
-    const hasUser=await User.findOne({email:body.email})
-    if(!hasUser) return res.json({status:400,message:"Email ya da Şifre hatalı"})
-    if(!hasUser.isActive) return res.json({status:400,message:"Hesabınız pasif konumdadır. mernmania@gmail.com adresinden yardım alabilirsiniz."})
+    const hasUser = await User.findOne({ email: body.email });
+    if (!hasUser)
+      return res.json({ status: 400, message: "Email ya da Şifre hatalı" });
+    if (!hasUser.isActive)
+      return res.json({
+        status: 400,
+        message:
+          "Hesabınız pasif konumdadır. mernmania@gmail.com adresinden yardım alabilirsiniz.",
+      });
     //check password
-    const isPassword=await bcrypt.compare(body.password,hasUser.password)
-    if(!isPassword) return res.json({status:400,message:"Email ya da Şifre hatalı"})
+    const isPassword = await bcrypt.compare(body.password, hasUser.password);
+    if (!isPassword)
+      return res.json({ status: 400, message: "Email ya da Şifre hatalı" });
     //login success, sign jwt
-    const token=jwt.sign(
+    const token = jwt.sign(
       {
-        user:{
-          _id:hasUser._id,
-          email:hasUser.email,
+        user: {
+          _id: hasUser._id,
+          email: hasUser.email,
           firstName: hasUser.firstName,
-          middleName:hasUser.middleName,
-          lastName:hasUser.lastName
-        }
+          middleName: hasUser.middleName,
+          lastName: hasUser.lastName,
+        },
       },
       process.env.JWT_SECRET
-    )
+    );
     return res.json({
-      status:200,
-      message:"Giriş işlemi başarılı",
+      status: 200,
+      message: "Giriş işlemi başarılı",
       userId: hasUser._id,
       token,
       firstName: hasUser.firstName,
-      middleName:hasUser.middleName,
-      lastName:hasUser.lastName,
-      email:hasUser.email
-    })
+      middleName: hasUser.middleName,
+      lastName: hasUser.lastName,
+      email: hasUser.email,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ status: 500, error });
   }
-})
+});
 
 //check token
-router.get("/verify-token/:token",async (req,res)=>{
-  console.log(req.params)
-  const {token}=req.params
-  if(!token) return res.json({status:400,message:"Token yok"})
-})
+router.get("/verify-token/:token", async (req, res) => {
+  console.log(req.params);
+  const { token } = req.params;
+  if (!token) return res.json({ status: 400, message: "Token yok" });
+  const decodedToken = jwt.decode(token);
+  if (!decodedToken)
+    return res.json({ status: 400, message: "Geçersiz Token" });
+  const user = await User.findOne({ email: decodedToken.user.email });
+  return res.json({
+    status: 200,
+    message: "Token geçerli, login başarılı",
+    userId: user._id,
+    token,
+    firstName: user.firstName,
+    middleName: user.middleName,
+    lastName: user.lastName,
+    email: user.email,
+  });
+});
 
 module.exports = router;
