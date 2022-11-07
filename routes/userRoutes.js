@@ -127,6 +127,7 @@ router.get("/verify-token/:token", async (req, res) => {
   const { token } = req.params;
   if (!token) return res.json({ status: 400, message: "Token yok" });
   const decodedToken = jwt.decode(token);
+  console.log(decodedToken);
   if (!decodedToken)
     return res.json({ status: 400, message: "Geçersiz Token" });
   const user = await User.findOne({ email: decodedToken.user.email });
@@ -140,6 +141,27 @@ router.get("/verify-token/:token", async (req, res) => {
     lastName: user.lastName,
     email: user.email,
   });
+});
+
+//update user infos (without img)
+router.post("/update-profile", async (req, res) => {
+  try {
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const { body } = req;
+    const updatedUser = await User.findOneAndUpdate(decodedToken.user._id, {
+      firstName: body.firstName ? body.firstName : "",
+      middleName: body.middleName ? body.middleName : "",
+      lastName: body.lastName ? body.lastName : ""
+    },
+    {new: true});
+    if(!updatedUser) return res.json({status: 500, message: "Bilgileri güncellerken hata oluştu"})
+    res.json({status:200,message: "Güncelleme başarılı", updatedUser})
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
 });
 
 module.exports = router;

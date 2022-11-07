@@ -22,7 +22,7 @@ const userSchema=mongoose.Schema({
     },
     password: {
         type: String,
-        //required: true,
+        required: true,
         min: 6
     },
     cvs: {
@@ -38,7 +38,12 @@ const userSchema=mongoose.Schema({
         default: new Date()
     },
     inActivatedDate: {
-        type: String
+        type: String,
+        default: ""
+    },
+    profileImage: {
+        type: String,
+        default: ""
     }
 
 })
