@@ -150,7 +150,8 @@ router.post("/update-profile", async (req, res) => {
     if (!decodedToken)
       return res.json({ status: 400, message: "Yetkisiz işlem" });
     const { body } = req;
-    const updatedUser = await User.findOneAndUpdate(decodedToken.user._id, {
+    console.log(decodedToken)
+    const updatedUser = await User.findOneAndUpdate({_id:decodedToken.user._id}, {
       firstName: body.firstName ? body.firstName : "",
       middleName: body.middleName ? body.middleName : "",
       lastName: body.lastName ? body.lastName : ""
