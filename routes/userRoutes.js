@@ -165,4 +165,21 @@ router.post("/update-profile", async (req, res) => {
   }
 });
 
+/* 
+  get profile. requires token in headers
+*/
+
+router.get("/get-profile",async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const user=await User.findOne({email: decodedToken.user.email})
+    return res.json({status:200,user})
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
 module.exports = router;
