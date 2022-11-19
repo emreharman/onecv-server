@@ -182,4 +182,80 @@ router.get("/get-profile",async (req,res)=>{
   }
 })
 
+// get cvs
+router.get("/get-cvs",async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token)
+    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const user = await User.findOne({email:decodedToken.user.email})
+    res.json({status:200,cvs:user.cvs})
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
+//add cv
+router.post("/add-cv",async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token)
+    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const cv=req.body
+    const user = await User.findOne({email:decodedToken.user.email})
+    const newCv={
+      id: String(new Date().getTime()),
+      jobTitle: cv.jobTitle ? cv.jobTitle : "",
+      personalDescription: cv.personalDescription ? cv.personalDescription : "",
+      educations: cv.educations ? cv.educations : [],
+      experiences: cv.experiences ? cv.experiences : [],
+      projects: cv.projects ? cv.projects : [],
+      skills: cv.skills ? cv.skills : [],
+      languages: cv.languages ? cv.languages : [],
+      socialPlatforms : cv.socialPlatforms ? cv.socialPlatforms : []
+    }
+    console.log("user",user)
+    const updatedUser = await User.findOneAndUpdate({_id:user._id},{cvs:[...user.cvs,newCv]},{new: true})
+    if(!updatedUser) return res.json({status: 500, message: "CV eklerken hata oluştu"})
+    console.log("updated",updatedUser)
+    res.json({status:200,message: "CV Ekleme Başarılı.", cvs:updatedUser.cvs})
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
+//edit cv
+router.post("/edit-cv/:id",async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token)
+    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const cv=req.body
+    const {id}=req.params
+    const user=await User.findOne({_id:decodedToken.user._id})
+    let willEditCv=user.cvs.find(item => item.id === id)
+    console.log("willEditCv",willEditCv)
+    willEditCv = {
+      ...willEditCv,
+      jobTitle: cv.jobTitle ? cv.jobTitle : "",
+      personalDescription: cv.personalDescription ? cv.personalDescription : "",
+      educations: cv.educations ? cv.educations : [],
+      experiences: cv.experiences ? cv.experiences : [],
+      projects: cv.projects ? cv.projects : [],
+      skills: cv.skills ? cv.skills : [],
+      languages: cv.languages ? cv.languages : [],
+      socialPlatforms : cv.socialPlatforms ? cv.socialPlatforms : []
+    }
+    const editedCvs=user.cvs.filter(item=>item.id !== id)
+    editedCvs.push(willEditCv)
+    const updatedUser = await User.findOneAndUpdate({_id:user._id},{cvs:editedCvs},{new: true})
+    if(!updatedUser) return res.json({status: 500, message: "CV güncellerken hata oluştu"})
+    console.log("updated",updatedUser)
+    res.json({status:200,message: "CV Güncelleme Başarılı.", cvs:updatedUser.cvs})
+  
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
 module.exports = router;
