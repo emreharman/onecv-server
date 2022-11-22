@@ -3,6 +3,14 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const emailValidator = require("email-validator");
 const User = require("../models/User");
+const multer = require("multer");
+const path = require('path');
+const upload = multer({
+  dest: __dirname+"/public"
+  // you might also want to set some limits: https://github.com/expressjs/multer#limits
+});
+
+let fs = require('fs');
 
 //register
 router.post("/register", async (req, res) => {
@@ -204,8 +212,12 @@ router.post("/add-cv",async (req,res)=>{
     const user = await User.findOne({email:decodedToken.user.email})
     const newCv={
       id: String(new Date().getTime()),
+      name:cv.name ? cv.name : "Untitled",
       jobTitle: cv.jobTitle ? cv.jobTitle : "",
       personalDescription: cv.personalDescription ? cv.personalDescription : "",
+      email: cv.email ? cv.email : "",
+      phone: cv.phone ? cv.phone : "",
+      address: cv.address ? cv.address : "",
       educations: cv.educations ? cv.educations : [],
       experiences: cv.experiences ? cv.experiences : [],
       projects: cv.projects ? cv.projects : [],
@@ -236,8 +248,12 @@ router.post("/edit-cv/:id",async (req,res)=>{
     console.log("willEditCv",willEditCv)
     willEditCv = {
       ...willEditCv,
+      name:cv.name ? cv.name : "Untitled",
       jobTitle: cv.jobTitle ? cv.jobTitle : "",
       personalDescription: cv.personalDescription ? cv.personalDescription : "",
+      email: cv.email ? cv.email : "",
+      phone: cv.phone ? cv.phone : "",
+      address: cv.address ? cv.address : "",
       educations: cv.educations ? cv.educations : [],
       experiences: cv.experiences ? cv.experiences : [],
       projects: cv.projects ? cv.projects : [],
@@ -252,6 +268,28 @@ router.post("/edit-cv/:id",async (req,res)=>{
     console.log("updated",updatedUser)
     res.json({status:200,message: "CV Güncelleme Başarılı.", cvs:updatedUser.cvs})
   
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
+//upload profile photo
+router.post("/upload-profile-photo",upload.single("file"),async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token)
+    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const tempPath = req.file.path;
+    const targetPath = path.join(__dirname, `../public/${decodedToken.user._id}.png`)
+
+    fs.rename(tempPath, targetPath, err => {
+      if (err) console.log(err)
+
+      res
+        .status(200)
+        .contentType("text/plain")
+        .end("File uploaded!");
+    });
   } catch (error) {
     console.log(error);
     res.json({ status: 500, error });

@@ -19,10 +19,11 @@ mongoose.connect('mongodb://localhost:27017/',{
         app.listen(PORT,()=>console.log("DB Connection is Ok and listening PORT:",PORT))
     }
 })
-
-app.use(express.json());
-app.use(cors({origin: '*'}));
 app.get('/',(req,res)=>{
     res.send('Welcome to OneCV server')
 })
+app.use(express.json());
+app.use(cors({origin: '*'}));
+app.use(express.static(__dirname+"/public"))
+
 app.use("/user",require("./routes/userRoutes"))
