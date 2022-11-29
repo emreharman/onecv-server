@@ -4,13 +4,14 @@ const jwt = require("jsonwebtoken");
 const emailValidator = require("email-validator");
 const User = require("../models/User");
 const multer = require("multer");
-const path = require('path');
+const path = require("path");
 const upload = multer({
-  dest: __dirname+"/public"
+  dest: __dirname + "/public",
   // you might also want to set some limits: https://github.com/expressjs/multer#limits
 });
 
-let fs = require('fs');
+const baseUrl = require("../constants/baseUrl");
+let fs = require("fs");
 
 //register
 router.post("/register", async (req, res) => {
@@ -158,15 +159,22 @@ router.post("/update-profile", async (req, res) => {
     if (!decodedToken)
       return res.json({ status: 400, message: "Yetkisiz işlem" });
     const { body } = req;
-    console.log(decodedToken)
-    const updatedUser = await User.findOneAndUpdate({_id:decodedToken.user._id}, {
-      firstName: body.firstName ? body.firstName : "",
-      middleName: body.middleName ? body.middleName : "",
-      lastName: body.lastName ? body.lastName : ""
-    },
-    {new: true});
-    if(!updatedUser) return res.json({status: 500, message: "Bilgileri güncellerken hata oluştu"})
-    res.json({status:200,message: "Güncelleme başarılı", updatedUser})
+    console.log(decodedToken);
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: decodedToken.user._id },
+      {
+        firstName: body.firstName ? body.firstName : "",
+        middleName: body.middleName ? body.middleName : "",
+        lastName: body.lastName ? body.lastName : "",
+      },
+      { new: true }
+    );
+    if (!updatedUser)
+      return res.json({
+        status: 500,
+        message: "Bilgileri güncellerken hata oluştu",
+      });
+    res.json({ status: 200, message: "Güncelleme başarılı", updatedUser });
   } catch (error) {
     console.log(error);
     res.json({ status: 500, error });
@@ -177,42 +185,44 @@ router.post("/update-profile", async (req, res) => {
   get profile. requires token in headers
 */
 
-router.get("/get-profile",async (req,res)=>{
+router.get("/get-profile", async (req, res) => {
   try {
     const decodedToken = jwt.decode(req.headers.token);
     if (!decodedToken)
       return res.json({ status: 400, message: "Yetkisiz işlem" });
-    const user=await User.findOne({email: decodedToken.user.email})
-    return res.json({status:200,user})
+    const user = await User.findOne({ email: decodedToken.user.email });
+    return res.json({ status: 200, user });
   } catch (error) {
     console.log(error);
     res.json({ status: 500, error });
   }
-})
+});
 
 // get cvs
-router.get("/get-cvs",async (req,res)=>{
+router.get("/get-cvs", async (req, res) => {
   try {
-    const decodedToken = jwt.decode(req.headers.token)
-    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
-    const user = await User.findOne({email:decodedToken.user.email})
-    res.json({status:200,cvs:user.cvs})
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const user = await User.findOne({ email: decodedToken.user.email });
+    res.json({ status: 200, cvs: user.cvs });
   } catch (error) {
     console.log(error);
     res.json({ status: 500, error });
   }
-})
+});
 
 //add cv
-router.post("/add-cv",async (req,res)=>{
+router.post("/add-cv", async (req, res) => {
   try {
-    const decodedToken = jwt.decode(req.headers.token)
-    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
-    const cv=req.body
-    const user = await User.findOne({email:decodedToken.user.email})
-    const newCv={
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const cv = req.body;
+    const user = await User.findOne({ email: decodedToken.user.email });
+    const newCv = {
       id: String(new Date().getTime()),
-      name:cv.name ? cv.name : "Untitled",
+      name: cv.name ? cv.name : "Untitled",
       jobTitle: cv.jobTitle ? cv.jobTitle : "",
       personalDescription: cv.personalDescription ? cv.personalDescription : "",
       email: cv.email ? cv.email : "",
@@ -223,77 +233,112 @@ router.post("/add-cv",async (req,res)=>{
       projects: cv.projects ? cv.projects : [],
       skills: cv.skills ? cv.skills : [],
       languages: cv.languages ? cv.languages : [],
-      socialPlatforms : cv.socialPlatforms ? cv.socialPlatforms : []
-    }
-    console.log("user",user)
-    const updatedUser = await User.findOneAndUpdate({_id:user._id},{cvs:[...user.cvs,newCv]},{new: true})
-    if(!updatedUser) return res.json({status: 500, message: "CV eklerken hata oluştu"})
-    console.log("updated",updatedUser)
-    res.json({status:200,message: "CV Ekleme Başarılı.", cvs:updatedUser.cvs})
-  } catch (error) {
-    console.log(error);
-    res.json({ status: 500, error });
-  }
-})
-
-//edit cv
-router.post("/edit-cv/:id",async (req,res)=>{
-  try {
-    const decodedToken = jwt.decode(req.headers.token)
-    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
-    const cv=req.body
-    const {id}=req.params
-    const user=await User.findOne({_id:decodedToken.user._id})
-    let willEditCv=user.cvs.find(item => item.id === id)
-    console.log("willEditCv",willEditCv)
-    willEditCv = {
-      ...willEditCv,
-      name:cv.name ? cv.name : "Untitled",
-      jobTitle: cv.jobTitle ? cv.jobTitle : "",
-      personalDescription: cv.personalDescription ? cv.personalDescription : "",
-      email: cv.email ? cv.email : "",
-      phone: cv.phone ? cv.phone : "",
-      address: cv.address ? cv.address : "",
-      educations: cv.educations ? cv.educations : [],
-      experiences: cv.experiences ? cv.experiences : [],
-      projects: cv.projects ? cv.projects : [],
-      skills: cv.skills ? cv.skills : [],
-      languages: cv.languages ? cv.languages : [],
-      socialPlatforms : cv.socialPlatforms ? cv.socialPlatforms : []
-    }
-    const editedCvs=user.cvs.filter(item=>item.id !== id)
-    editedCvs.push(willEditCv)
-    const updatedUser = await User.findOneAndUpdate({_id:user._id},{cvs:editedCvs},{new: true})
-    if(!updatedUser) return res.json({status: 500, message: "CV güncellerken hata oluştu"})
-    console.log("updated",updatedUser)
-    res.json({status:200,message: "CV Güncelleme Başarılı.", cvs:updatedUser.cvs})
-  
-  } catch (error) {
-    console.log(error);
-    res.json({ status: 500, error });
-  }
-})
-
-//upload profile photo
-router.post("/upload-profile-photo",upload.single("file"),async (req,res)=>{
-  try {
-    const decodedToken = jwt.decode(req.headers.token)
-    if(!decodedToken) return res.json({ status: 400, message: "Yetkisiz işlem" });
-    const tempPath = req.file.path;
-    const targetPath = path.join(__dirname, `../public/${decodedToken.user._id}.png`)
-
-    fs.rename(tempPath, targetPath, err => {
-      if (err) console.log(err)
-
-      res
-        .status(200)
-        .contentType("text/plain")
-        .end("File uploaded!");
+      socialPlatforms: cv.socialPlatforms ? cv.socialPlatforms : [],
+    };
+    console.log("user", user);
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
+      { cvs: [...user.cvs, newCv] },
+      { new: true }
+    );
+    if (!updatedUser)
+      return res.json({ status: 500, message: "CV eklerken hata oluştu" });
+    console.log("updated", updatedUser);
+    res.json({
+      status: 200,
+      message: "CV Ekleme Başarılı.",
+      cvs: updatedUser.cvs,
     });
   } catch (error) {
     console.log(error);
     res.json({ status: 500, error });
   }
-})
+});
+
+//edit cv
+router.post("/edit-cv/:id", async (req, res) => {
+  try {
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const cv = req.body;
+    const { id } = req.params;
+    const user = await User.findOne({ _id: decodedToken.user._id });
+    let willEditCv = user.cvs.find((item) => item.id === id);
+    console.log("willEditCv", willEditCv);
+    willEditCv = {
+      ...willEditCv,
+      name: cv.name ? cv.name : "Untitled",
+      jobTitle: cv.jobTitle ? cv.jobTitle : "",
+      personalDescription: cv.personalDescription ? cv.personalDescription : "",
+      email: cv.email ? cv.email : "",
+      phone: cv.phone ? cv.phone : "",
+      address: cv.address ? cv.address : "",
+      educations: cv.educations ? cv.educations : [],
+      experiences: cv.experiences ? cv.experiences : [],
+      projects: cv.projects ? cv.projects : [],
+      skills: cv.skills ? cv.skills : [],
+      languages: cv.languages ? cv.languages : [],
+      socialPlatforms: cv.socialPlatforms ? cv.socialPlatforms : [],
+    };
+    const editedCvs = user.cvs.filter((item) => item.id !== id);
+    editedCvs.push(willEditCv);
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
+      { cvs: editedCvs },
+      { new: true }
+    );
+    if (!updatedUser)
+      return res.json({ status: 500, message: "CV güncellerken hata oluştu" });
+    console.log("updated", updatedUser);
+    res.json({
+      status: 200,
+      message: "CV Güncelleme Başarılı.",
+      cvs: updatedUser.cvs,
+    });
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+});
+
+//upload profile photo
+router.post(
+  "/upload-profile-photo",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const decodedToken = jwt.decode(req.headers.token);
+      if (!decodedToken)
+        return res.json({ status: 400, message: "Yetkisiz işlem" });
+      const tempPath = req.file.path;
+      const targetPath = path.join(
+        __dirname,
+        `../public/${decodedToken.user._id}.png`
+      );
+
+      fs.rename(tempPath, targetPath, async (err) => {
+        if (err) {
+          console.log(err);
+          res.json({ status: 500, error });
+        }
+        console.log(baseUrl);
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: decodedToken.user._id },
+          { profileImage: `${baseUrl}/${decodedToken.user._id}.png` },
+          { new: true }
+        );
+        res.json({
+          status: 200,
+          profileImage: `${baseUrl}/${decodedToken.user._id}.png`,
+          updatedUser
+        });
+      });
+    } catch (error) {
+      console.log(error);
+      res.json({ status: 500, error });
+    }
+  }
+);
 
 module.exports = router;
