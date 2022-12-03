@@ -302,6 +302,35 @@ router.post("/edit-cv/:id", async (req, res) => {
   }
 });
 
+// delete cv
+router.post("/delete-cv/:id", async (req,res)=>{
+  try {
+    const decodedToken = jwt.decode(req.headers.token);
+    if (!decodedToken)
+      return res.json({ status: 400, message: "Yetkisiz işlem" });
+    const { id } = req.params;
+    const user = await User.findOne({ _id: decodedToken.user._id });
+    const filteredCvs=user.cvs.filter(item=>item.id !== id)
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
+      { cvs: filteredCvs },
+      { new: true }
+    );
+    if (!updatedUser)
+      return res.json({ status: 500, message: "CV silerken hata oluştu" });
+    console.log("updated", updatedUser);
+    res.json({
+      status: 200,
+      message: "CV Silme Başarılı.",
+      cvs: updatedUser.cvs,
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.json({ status: 500, error });
+  }
+})
+
 //upload profile photo
 router.post(
   "/upload-profile-photo",
