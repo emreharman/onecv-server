@@ -140,6 +140,7 @@ router.get("/verify-token/:token", async (req, res) => {
   if (!decodedToken)
     return res.json({ status: 400, message: "Geçersiz Token" });
   const user = await User.findOne({ email: decodedToken.user.email });
+  if(!user) return res.json({ status: 400, message: "Geçersiz Token" });
   return res.json({
     status: 200,
     message: "Token geçerli, login başarılı",
