@@ -44,6 +44,38 @@ const userSchema=mongoose.Schema({
     profileImage: {
         type: String,
         default: ""
+    },
+    phone: {
+        type: String,
+        default: ""
+    },
+    location: {
+        type: String,
+        default: ""
+    },
+    educations: {
+        type: Array,
+        default:[]
+    },
+    experiences: {
+        type: Array,
+        default: []
+    },
+    projects: {
+        type: Array,
+        default: []
+    },
+    languages: {
+        type: Array,
+        default: []
+    },
+    skills: {
+        type: Array,
+        default: []
+    },
+    socials: {
+        type: Array,
+        default: []
     }
 
 })

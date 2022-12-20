@@ -167,6 +167,14 @@ router.post("/update-profile", async (req, res) => {
         firstName: body.firstName ? body.firstName : "",
         middleName: body.middleName ? body.middleName : "",
         lastName: body.lastName ? body.lastName : "",
+        phone: body.phone ? body.phone : "",
+        location: body.location ? body.location : "",
+        educations: body.educations ? body.educations : [],
+        experiences: body.experiences ? body.experiences : [],
+        projects: body.projects ? body.projects : [],
+        languages: body.languages ? body.languages : [],
+        skills: body.skills ? body.skills : [],
+        socials: body.socials ? body.socials : []
       },
       { new: true }
     );
@@ -234,7 +242,7 @@ router.post("/add-cv", async (req, res) => {
       projects: cv.projects ? cv.projects : [],
       skills: cv.skills ? cv.skills : [],
       languages: cv.languages ? cv.languages : [],
-      socialPlatforms: cv.socialPlatforms ? cv.socialPlatforms : [],
+      socials: cv.socials ? cv.socials : [],
     };
     console.log("user", user);
     const updatedUser = await User.findOneAndUpdate(
@@ -280,7 +288,7 @@ router.post("/edit-cv/:id", async (req, res) => {
       projects: cv.projects ? cv.projects : [],
       skills: cv.skills ? cv.skills : [],
       languages: cv.languages ? cv.languages : [],
-      socialPlatforms: cv.socialPlatforms ? cv.socialPlatforms : [],
+      socials: cv.socials ? cv.socials : [],
     };
     const editedCvs = user.cvs.filter((item) => item.id !== id);
     editedCvs.push(willEditCv);
@@ -341,7 +349,8 @@ router.post(
       const decodedToken = jwt.decode(req.headers.token);
       if (!decodedToken)
         return res.json({ status: 400, message: "Yetkisiz işlem" });
-      const tempPath = req.file.path;
+      console.log("req........",req.file)
+      const tempPath = req.file.hasOwnProperty("path") ? req.file.path : req.file.uri ;
       const targetPath = path.join(
         __dirname,
         `../public/${decodedToken.user._id}.png`
@@ -350,7 +359,7 @@ router.post(
       fs.rename(tempPath, targetPath, async (err) => {
         if (err) {
           console.log(err);
-          res.json({ status: 500, error });
+          res.json({ status: 500, err });
         }
         console.log(baseUrl);
         const updatedUser = await User.findOneAndUpdate(
